@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Smart Retail Assistant Agent — Live Simulation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #090e11 0%, #111a1f 100%);
+      --panel-bg: rgba(20, 30, 35, 0.65);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --ink: #E0E7FF;
+      --ink-dim: #94A3B8;
+      --accent: #38BDF8;
+      --accent-glow: rgba(56, 189, 248, 0.3);
+      --accent2: #10B981;
+      --accent2-glow: rgba(16, 185, 129, 0.3);
+      --danger: #EF4444;
+      --warning: #F59E0B;
+      
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      box-sizing: border-box;
+    }
+
+    * { box-sizing: border-box; transition: background-color 0.2s, border-color 0.2s, color 0.2s; }
+    html { height: 100%; }
+    
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg-gradient);
+      color: var(--ink);
+      font-family: 'Inter', sans-serif;
+      padding: 24px;
+      padding-top: calc(24px + env(safe-area-inset-top, 0px));
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      letter-spacing: -0.02em;
+      margin: 0 0 4px;
+      font-weight: 700;
+      background: linear-gradient(to right, #fff, #94A3B8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .sub {
+      color: var(--ink-dim);
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width:900px) { .layout { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    .card h2 {
+      font-size: 0.75rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin: 0 0 16px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+    select, button, input {
+      font-family: inherit;
+      font-size: 0.85rem;
+      background: rgba(0, 0, 0, 0.2);
+      color: var(--ink);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      outline: none;
+    }
+
+    select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+    select { cursor: pointer; }
+    option { background: #111a1f; color: var(--ink); }
+
+    button {
+      background: var(--accent2);
+      border: none;
+      color: #000;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px var(--accent2-glow);
+      transform: translateY(0);
+      transition: transform 0.1s, box-shadow 0.2s;
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 6px 16px var(--accent2-glow); }
+    button:active { transform: translateY(1px); }
+
+    button.secondary { background: rgba(255, 255, 255, 0.1); color: var(--ink); box-shadow: none; }
+    button.secondary:hover { background: rgba(255, 255, 255, 0.15); }
+
+    button.tick { background: var(--accent); box-shadow: 0 4px 12px var(--accent-glow); }
+    button.tick:hover { box-shadow: 0 6px 16px var(--accent-glow); }
+
+    button.auto-pilot { background: #3B82F6; color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
+    button.auto-pilot:hover { box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5); }
+    button.auto-pilot.active {
+      background: #10B981;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--panel-border); }
+    th { color: var(--ink-dim); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    
+    tr { transition: background-color 0.3s ease; }
+    .flash-update { background-color: rgba(56, 189, 248, 0.2); }
+
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; }
+    .ok { background: rgba(16, 185, 129, 0.15); color: var(--accent2); }
+    .low { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .panel-block {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+    }
+    .panel-block .lbl { color: var(--ink-dim); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; font-weight: 600; }
+    .panel-block .val { font-size: 0.9rem; line-height: 1.5; }
+
+    #log {
+      height: 300px;
+      overflow-y: auto;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.3);
+      scroll-behavior: smooth;
+    }
+    
+    .log-entry {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      animation: slideIn 0.3s ease-out forwards;
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+    
+    .tag { display: inline-block; min-width: 70px; font-weight: 700; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; text-align: center; margin-right: 8px;}
+    .tag.sense { background: rgba(56, 189, 248, 0.15); color: var(--accent); }
+    .tag.decide { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    .tag.act { background: rgba(16, 185, 129, 0.15); color: var(--accent2); }
+    
+    .empty { color: var(--ink-dim); font-style: italic; text-align: center; margin-top: 20px; }
+    
+    #chart-container { height: 180px; width: 100%; margin-top: 16px; }
+    
+    .fallback-warning {
+      display: none;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      margin-top: 10px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🛒 Smart Retail Assistant Agent</h1>
+  <div class="sub">A working learning agent — perceives store events, reasons with a real LLM call each cycle, acts on inventory &amp; pricing.</div>
+  
+  <div class="card">
+    <h2>AI PROVIDER CONFIGURATION</h2>
+    <div class="controls">
+      <input type="password" id="geminiKey" placeholder="Paste Gemini API key"
+        value="AQ.Ab8RN6LuFIhOf24sFhslav-iOkVnc8nILdpDNB3i-xbgBIgxKg"
+        style="flex:1; min-width:280px;">
+      <input type="text" id="geminiModel" placeholder="model" value="gemini-3.6-flash" style="width:180px;">
+      <label style="font-size:0.8rem; color:var(--ink-dim); display:flex; align-items:center; gap:6px;">
+        <input type="checkbox" id="rememberKey"> Remember Key
+      </label>
+    </div>
+    <div id="fallbackWarning" class="fallback-warning">⚠ AI API Failed. Running in rule-based fallback mode.</div>
+    <div class="sub" style="margin:12px 0 0; font-size: 0.75rem;">Get a free key at <span style="color:var(--accent)">aistudio.google.com/apikey</span>. Keys are stored locally in your browser.</div>
+  </div>
+
+  <div class="card">
+    <h2>SIMULATE ENVIRONMENT EVENTS</h2>
+    <div class="controls">
+      <select id="browseCat">
+        <option value="Electronics">Electronics</option>
+        <option value="Grocery">Grocery</option>
+        <option value="Apparel">Apparel</option>
+        <option value="Home">Home</option>
+      </select>
+      <button onclick="sim.customerBrowses()">Customer Browses Category</button>
+      
+      <select id="buyProd"></select>
+      <button onclick="sim.customerBuys()">Customer Buys Item</button>
+      
+      <button class="tick" onclick="sim.agentTick()">⏱ Advance Time (Tick)</button>
+      <button class="auto-pilot" id="btnAutoPilot" onclick="sim.toggleAutoPilot()">🚀 Start Auto-Pilot</button>
+      <button class="secondary" onclick="sim.reset()">Reset Simulation</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div>
+      <div class="card">
+        <h2>ENVIRONMENT · STORE INVENTORY</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="invBody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h2>ACTIVITY LOG</h2>
+        <div id="log">
+          <div class="empty">No events yet. Try "Customer browses" or "Advance time".</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>AGENT STATE — LIVE</h2>
+        <div class="panel-block">
+          <div class="lbl">👁 Sensors — Last Perception</div>
+          <div class="val" id="sPerception">Awaiting input…</div>
+        </div>
+        <div class="panel-block">
+          <div class="lbl">🧠 Reasoning — Utility Decision</div>
+          <div class="val" id="sReason">No decision made yet.</div>
+        </div>
+        <div class="panel-block">
+          <div class="lbl">⚙ Actuators — Action Executed</div>
+          <div class="val" id="sAction">Idle.</div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>PERFORMANCE METRICS</h2>
+        <table>
+          <tr><td>Recommendations shown</td><td id="mRec">0</td></tr>
+          <tr><td>Items sold</td><td id="mSold">0</td></tr>
+          <tr><td>Revenue</td><td id="mRev">₹0</td></tr>
+          <tr><td>Restock alerts</td><td id="mRestock">0</td></tr>
+          <tr><td>Price adjustments</td><td id="mPrice">0</td></tr>
+        </table>
+        <div id="chart-container">
+          <canvas id="revenueChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- State Management ---
+    class SimulationState {
+      constructor() {
+        this.reset();
+        this.chart = null;
+      }
+      
+      reset() {
+        this.products = [
+          { id: 1, name: "Wireless Earbuds", cat: "Electronics", price: 1999, base: 1999, stock: 14, reorder: 6, sold: 0 },
+          { id: 2, name: "Smart Watch", cat: "Electronics", price: 3499, base: 3499, stock: 5, reorder: 6, sold: 0 },
+          { id: 3, name: "Basmati Rice 5kg", cat: "Grocery", price: 549, base: 549, stock: 30, reorder: 10, sold: 0 },
+          { id: 4, name: "Olive Oil 1L", cat: "Grocery", price: 699, base: 699, stock: 8, reorder: 8, sold: 0 },
+          { id: 5, name: "Cotton T-Shirt", cat: "Apparel", price: 499, base: 499, stock: 22, reorder: 8, sold: 0 },
+          { id: 6, name: "Denim Jacket", cat: "Apparel", price: 1899, base: 1899, stock: 4, reorder: 6, sold: 0 },
+          { id: 7, name: "LED Desk Lamp", cat: "Home", price: 899, base: 899, stock: 16, reorder: 6, sold: 0 },
+          { id: 8, name: "Ceramic Mug Set", cat: "Home", price: 449, base: 449, stock: 3, reorder: 6, sold: 0 },
+        ];
+        this.metrics = { rec: 0, sold: 0, rev: 0, restock: 0, price: 0 };
+        this.timeTicks = 0;
+        this.revenueHistory = [0];
+        this.tickLabels = ['Start'];
+        this.lastBrowsedCat = null;
+        this.memoryStream = [];
+        this.autoPilotActive = false;
+        if(this.autoPilotInterval) clearInterval(this.autoPilotInterval);
+        this.autoPilotInterval = null;
+        
+        const btn = document.getElementById('btnAutoPilot');
+        if (btn) {
+          btn.classList.remove('active');
+          btn.textContent = '🚀 Start Auto-Pilot';
+        }
+        
+        ui.logClear();
+        ui.setState("Awaiting input…", "No decision made yet.", "Idle.");
+        this.updateUI();
+        if(this.chart) {
+          this.chart.data.labels = this.tickLabels;
+          this.chart.data.datasets[0].data = this.revenueHistory;
+          this.updateChart();
+        }
+      }
+
+      updateUI() {
+        ui.renderInventory(this.products);
+        ui.renderMetrics(this.metrics);
+      }
+      
+      initChart() {
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+        this.chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: this.tickLabels,
+            datasets: [{
+              label: 'Revenue (₹)',
+              data: this.revenueHistory,
+              borderColor: '#10B981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94A3B8' } },
+              x: { grid: { display: false }, ticks: { color: '#94A3B8' } }
+            }
+          }
+        });
+      }
+
+      recordTick() {
+        this.timeTicks++;
+        this.tickLabels.push('T' + this.timeTicks);
+        this.revenueHistory.push(this.metrics.rev);
+        this.updateChart();
+      }
+      
+      updateChart() {
+        if(this.chart) {
+          this.chart.update();
+        }
+      }
+
+      addMemory(actionStr) {
+        this.memoryStream.push(`T${this.timeTicks}: ${actionStr}`);
+        if(this.memoryStream.length > 5) this.memoryStream.shift();
+      }
+
+      toggleAutoPilot() {
+        this.autoPilotActive = !this.autoPilotActive;
+        const btn = document.getElementById('btnAutoPilot');
+        if (this.autoPilotActive) {
+          btn.classList.add('active');
+          btn.textContent = '🛑 Stop Auto-Pilot';
+          ui.log('SENSE', '🚀 Auto-Pilot ENGAGED. Agent is now running autonomously.');
+          this.autoPilotInterval = setInterval(() => this.autoLoop(), 15000);
+        } else {
+          btn.classList.remove('active');
+          btn.textContent = '🚀 Start Auto-Pilot';
+          ui.log('SENSE', '🛑 Auto-Pilot DISENGAGED.');
+          clearInterval(this.autoPilotInterval);
+        }
+      }
+
+      async autoLoop() {
+        if(!this.autoPilotActive) return;
+        const event = Math.random();
+        if (event < 0.4) {
+          const cats = ['Electronics', 'Grocery', 'Apparel', 'Home'];
+          document.getElementById('browseCat').value = cats[Math.floor(Math.random() * cats.length)];
+          await this.customerBrowses();
+        } else if (event < 0.7) {
+          const inStock = this.products.filter(p => p.stock > 0);
+          if (inStock.length > 0) {
+            document.getElementById('buyProd').value = inStock[Math.floor(Math.random() * inStock.length)].id;
+            await this.customerBuys();
+          }
+        }
+        await this.agentTick();
+      }
+
+      // -- Sim Actions --
+      async customerBrowses() {
+        const cat = document.getElementById('browseCat').value;
+        this.lastBrowsedCat = cat;
+        ui.log('SENSE', `Customer browsing detected — category = "${cat}".`);
+        ui.setState(`Browsing "${cat}" products.`, "🧠 Reasoning over utility…", "…");
+
+        const options = this.products.filter(p => p.cat === cat);
+        const inStock = options.filter(p => p.stock > 0);
+        
+        if (inStock.length === 0) {
+          ui.setState(null, `No "${cat}" stock available. Utility is zero.`, "No recommendation shown.");
+          ui.log('DECIDE', `Utility = 0 (out of stock). Suppressing recommendation.`);
+          ui.log('ACT', `Category "${cat}" flagged unavailable.`);
+          return;
+        }
+
+        const prompt = `In-stock products (JSON): ${JSON.stringify(inStock.map(p => ({ id: p.id, name: p.name, stock: p.stock, price: p.price })))}
+Pick up to 2 product ids to recommend, maximizing a utility that balances: likelihood of purchase, clearing low-turnover/high stock items, and revenue.`;
+
+        const schema = {
+          type: "OBJECT",
+          properties: {
+            picks: { type: "ARRAY", items: { type: "INTEGER" } },
+            reasoning: { type: "STRING" }
+          },
+          required: ["picks", "reasoning"]
+        };
+        
+        const systemInstruction = "You are the reasoning module of a retail recommendation agent. Analyze the provided stock and respond strictly in JSON.";
+
+        const result = await ai.ask(prompt, schema, systemInstruction);
+        let picks, reasonTxt;
+        
+        if (result && Array.isArray(result.picks)) {
+          picks = result.picks.map(id => inStock.find(p => p.id === id)).filter(Boolean).slice(0, 2);
+          reasonTxt = `🧠 AI: ${result.reasoning}`;
+        }
+        
+        if (!picks || picks.length === 0) {
+          picks = inStock.sort((a, b) => b.stock - a.stock).slice(0, 2);
+          reasonTxt = `[Fallback Rule] Ranked in-stock "${cat}" by stock level.`;
+        }
+        
+        ui.setState(null, reasonTxt, `Recommended: ${picks.map(p => p.name + " (" + fmt(p.price) + ")").join(" | ")}`);
+        ui.log('DECIDE', reasonTxt);
+        ui.log('ACT', `UI Updated with recommendations: ${picks.map(p => p.name).join(", ")}.`);
+        this.metrics.rec++;
+        this.updateUI();
+      }
+
+      async customerBuys() {
+        const id = parseInt(document.getElementById('buyProd').value);
+        const p = this.products.find(x => x.id === id);
+        if (!p) return;
+        
+        if (p.stock <= 0) {
+          ui.log('SENSE', `Purchase attempt for "${p.name}" — stock is 0.`);
+          ui.setState(`Purchase attempt: ${p.name} (stock=0).`, `Cannot fulfill — no inventory.`, `Blocked sale.`);
+          ui.log('DECIDE', `Sale blocked due to stockout.`);
+          ui.log('ACT', `Shown "out of stock" message.`);
+          return;
+        }
+        
+        p.stock -= 1; p.sold += 1;
+        this.metrics.sold++; this.metrics.rev += p.price;
+        ui.flashRow(p.id);
+        
+        ui.log('SENSE', `POS transaction: 1x "${p.name}" sold at ${fmt(p.price)}. Stock now ${p.stock}.`);
+        ui.setState(`Sale confirmed: ${p.name}`, "🧠 Assessing restock need…", "…");
+
+        const prompt = `Product "${p.name}": current stock=${p.stock}, reorder point=${p.reorder}, units sold this cycle=${p.sold}. Decide whether to trigger a restock now.`;
+        const schema = {
+          type: "OBJECT",
+          properties: { restock: { type: "BOOLEAN" }, reasoning: { type: "STRING" } },
+          required: ["restock", "reasoning"]
+        };
+        const systemInstruction = "You manage restocking for a retail store. Weigh stockout risk against holding cost. Respond strictly in JSON.";
+
+        const result = await ai.ask(prompt, schema, systemInstruction);
+        let doRestock, reasonTxt;
+        
+        if (result && typeof result.restock === "boolean") {
+          doRestock = result.restock;
+          reasonTxt = `🧠 AI: ${result.reasoning}`;
+        } else {
+          doRestock = p.stock <= p.reorder;
+          reasonTxt = `[Fallback Rule] Stock (${p.stock}) vs reorder point (${p.reorder}).`;
+        }
+        
+        ui.setState(null, reasonTxt, doRestock ? `Restock alert sent for "${p.name}".` : `Inventory updated.`);
+        ui.log('DECIDE', reasonTxt);
+        if (doRestock) {
+          this.metrics.restock++;
+          ui.log('ACT', `🔔 Restock alert triggered for "${p.name}".`);
+        } else {
+          ui.log('ACT', `Inventory record updated.`);
+        }
+        this.updateUI();
+        this.revenueHistory[this.revenueHistory.length-1] = this.metrics.rev; // Update current tick's rev
+        this.updateChart();
+      }
+
+      async agentTick() {
+        ui.log('SENSE', `Scheduled tick — full inventory & demand scan.`);
+        ui.setState(`Full inventory scan (${this.products.length} SKUs).`, "🧠 Reviewing pricing & restock policy…", "…");
+
+        const snapshot = this.products.map(p => ({ id: p.id, name: p.name, stock: p.stock, reorder: p.reorder, price: p.price, base: p.base, soldThisCycle: p.sold }));
+        const memoryContext = this.memoryStream.length > 0 ? `\nRecent Memory:\n${this.memoryStream.join('\n')}` : "\nRecent Memory: None (first tick)";
+        const prompt = `Review this store snapshot (JSON): ${JSON.stringify(snapshot)}\n${memoryContext}\nFor each product, decide ONE action: "restock" (if stock<=reorder, add 10), "price_up" (if sold>=2, +8%), "price_down" (if stock > 2x reorder, -8%), or "none". Use your memory to avoid repeating failed actions (e.g., don't raise price if you just lowered it).`;
+        
+        const schema = {
+          type: "OBJECT",
+          properties: {
+            actions: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: { id: { type: "INTEGER" }, action: { type: "STRING" }, reasoning: { type: "STRING" } },
+                required: ["id", "action", "reasoning"]
+              }
+            }
+          },
+          required: ["actions"]
+        };
+        const systemInstruction = "You are the pricing & inventory reasoning module of a retail agent. Respond strictly in JSON.";
+
+        const result = await ai.ask(prompt, schema, systemInstruction);
+        let actions = [];
+        let usedAI = false;
+        
+        if (result && Array.isArray(result.actions)) {
+          usedAI = true;
+          result.actions.forEach(a => {
+            const p = this.products.find(x => x.id === a.id);
+            if (!p) return;
+            if (a.action === "restock") { p.stock += 10; this.metrics.restock++; actions.push(`🧠 Restocked "${p.name}" +10 units.`); ui.flashRow(p.id); this.addMemory(`Restocked ${p.name}`); }
+            else if (a.action === "price_up") { const np = Math.round(p.base * 1.08); if (np !== p.price) { p.price = np; this.metrics.price++; actions.push(`🧠 Raised price of "${p.name}" to ${fmt(np)}.`); ui.flashRow(p.id); this.addMemory(`Raised price of ${p.name}`); } p.sold = 0; }
+            else if (a.action === "price_down") { const np = Math.round(p.base * 0.92); if (np !== p.price) { p.price = np; this.metrics.price++; actions.push(`🧠 Discounted "${p.name}" to ${fmt(np)}.`); ui.flashRow(p.id); this.addMemory(`Discounted ${p.name}`); } }
+            else if (p.price !== p.base) { p.price = p.base; ui.flashRow(p.id); }
+          });
+        } else {
+          this.products.forEach(p => {
+            if (p.stock <= p.reorder) { p.stock += 10; this.metrics.restock++; actions.push(`[Rule] Restocked "${p.name}".`); ui.flashRow(p.id); }
+            else if (p.sold >= 2) { const np = Math.round(p.base * 1.08); if (np !== p.price) { p.price = np; this.metrics.price++; actions.push(`[Rule] Raised price of "${p.name}".`); ui.flashRow(p.id); } p.sold = 0; }
+            else if (p.stock > p.reorder * 2) { const np = Math.round(p.base * 0.92); if (np !== p.price) { p.price = np; this.metrics.price++; actions.push(`[Rule] Discounted "${p.name}".`); ui.flashRow(p.id); } }
+            else if (p.price !== p.base) { p.price = p.base; ui.flashRow(p.id); }
+          });
+        }
+
+        const reasonTxt = usedAI ? `🧠 AI reviewed ${this.products.length} SKUs.` : `[Fallback Rule] Applied thresholds across ${this.products.length} SKUs.`;
+        ui.setState(null, reasonTxt, actions.length ? actions.join(" ") : "No action required this cycle.");
+        ui.log('DECIDE', reasonTxt);
+        if (actions.length) { actions.forEach(a => ui.log('ACT', a)); } else { ui.log('ACT', `No action required.`); }
+        
+        this.updateUI();
+        this.recordTick();
+      }
+    }
+
+    // --- UI/DOM Helpers ---
+    const ui = {
+      renderInventory: (products) => {
+        const body = document.getElementById('invBody');
+        const sel = document.getElementById('buyProd');
+        
+        // Only re-render entirely if needed, else update values to preserve flash animations
+        if (body.children.length !== products.length) {
+          body.innerHTML = products.map(p => `<tr id="row-${p.id}">
+            <td>${p.name}</td><td>${p.cat}</td>
+            <td class="td-price">${fmt(p.price)}</td>
+            <td class="td-stock">${p.stock}</td>
+            <td class="td-status"><span class="badge ${p.stock <= p.reorder ? 'low' : 'ok'}">${p.stock <= p.reorder ? 'LOW STOCK' : 'OK'}</span></td>
+          </tr>`).join("");
+        } else {
+          products.forEach(p => {
+            const row = document.getElementById(`row-${p.id}`);
+            if(row) {
+              row.querySelector('.td-price').textContent = fmt(p.price);
+              row.querySelector('.td-stock').textContent = p.stock;
+              const badge = row.querySelector('.td-status span');
+              badge.className = `badge ${p.stock <= p.reorder ? 'low' : 'ok'}`;
+              badge.textContent = p.stock <= p.reorder ? 'LOW STOCK' : 'OK';
+            }
+          });
+        }
+        sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.stock} left)</option>`).join("");
+      },
+      renderMetrics: (metrics) => {
+        document.getElementById('mRec').textContent = metrics.rec;
+        document.getElementById('mSold').textContent = metrics.sold;
+        document.getElementById('mRev').textContent = fmt(metrics.rev);
+        document.getElementById('mRestock').textContent = metrics.restock;
+        document.getElementById('mPrice').textContent = metrics.price;
+      },
+      log: (type, text) => {
+        const el = document.getElementById('log');
+        if (el.querySelector('.empty')) el.innerHTML = "";
+        const row = document.createElement('div');
+        row.className = 'log-entry';
+        const tagClass = type === 'SENSE' ? 'sense' : type === 'DECIDE' ? 'decide' : 'act';
+        row.innerHTML = `<span class="tag ${tagClass}">${type}</span> ${text}`;
+        el.prepend(row);
+      },
+      logClear: () => {
+        document.getElementById('log').innerHTML = '<div class="empty">Simulation reset. No events yet.</div>';
+      },
+      setState: (perception, reason, action) => {
+        if (perception) document.getElementById('sPerception').textContent = perception;
+        if (reason) document.getElementById('sReason').textContent = reason;
+        if (action) document.getElementById('sAction').textContent = action;
+      },
+      flashRow: (id) => {
+        const row = document.getElementById(`row-${id}`);
+        if(row) {
+          row.classList.add('flash-update');
+          setTimeout(() => row.classList.remove('flash-update'), 500);
+        }
+      },
+      setFallbackWarning: (show) => {
+        document.getElementById('fallbackWarning').style.display = show ? 'block' : 'none';
+      }
+    };
+
+    function fmt(n) { return "₹" + n.toLocaleString("en-IN"); }
+
+    // --- AI Integration ---
+    const ai = {
+      async callGemini(promptText, schema, systemInstructionText) {
+        const key = document.getElementById('geminiKey').value.trim();
+        const model = document.getElementById('geminiModel').value.trim() || 'gemini-3.6-flash';
+        
+        const payload = {
+          contents: [{ parts: [{ text: promptText }] }],
+          generationConfig: { 
+            responseMimeType: "application/json",
+            responseSchema: schema 
+          }
+        };
+        if(systemInstructionText) {
+          payload.systemInstruction = { parts: [{ text: systemInstructionText }] };
+        }
+
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        
+        if (!resp.ok) {
+          const errText = await resp.text();
+          throw new Error(`Gemini Error ${resp.status}: ${errText.slice(0, 150)}`);
+        }
+        const data = await resp.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error('Empty response');
+        return JSON.parse(text);
+      },
+      
+      async ask(promptText, schema, systemInstructionText) {
+        const key = document.getElementById('geminiKey').value.trim();
+        if (key) {
+          try {
+            const res = await this.callGemini(promptText, schema, systemInstructionText);
+            ui.setFallbackWarning(false);
+            return res;
+          } catch (err) {
+            console.error(err);
+            ui.setFallbackWarning(true);
+            return null;
+          }
+        }
+        ui.setFallbackWarning(true);
+        return null;
+      }
+    };
+
+    // --- Init ---
+    const sim = new SimulationState();
+    
+    // Setup LocalStorage bindings
+    (() => {
+      try {
+        const saved = localStorage.getItem('retailAgent_geminiKey');
+        const savedModel = localStorage.getItem('retailAgent_geminiModel');
+        if (saved) { document.getElementById('geminiKey').value = saved; document.getElementById('rememberKey').checked = true; }
+        if (savedModel) { document.getElementById('geminiModel').value = savedModel; }
+      } catch (e) {}
+      
+      document.getElementById('geminiKey').addEventListener('input', (e) => {
+        if (document.getElementById('rememberKey').checked) localStorage.setItem('retailAgent_geminiKey', e.target.value);
+      });
+      document.getElementById('geminiModel').addEventListener('input', (e) => {
+        localStorage.setItem('retailAgent_geminiModel', e.target.value);
+      });
+      document.getElementById('rememberKey').addEventListener('change', (e) => {
+        if (e.target.checked) localStorage.setItem('retailAgent_geminiKey', document.getElementById('geminiKey').value);
+        else localStorage.removeItem('retailAgent_geminiKey');
+      });
+      
+      // Initialize Chart after DOM is ready
+      setTimeout(() => sim.initChart(), 100);
+    })();
+  </script>
+</body>
+</html>
